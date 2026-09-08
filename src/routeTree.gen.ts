@@ -10,33 +10,122 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
+import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthLoginRouteImport } from './routes/auth/login'
+import { Route as AuthRegisterRouteImport } from './routes/auth/register'
+import { Route as AuthenticatedDashboardCreatorRouteImport } from './routes/_authenticated/dashboard/creator'
+import { Route as AuthenticatedDashboardBrandIndexRouteImport } from './routes/_authenticated/dashboard/brand/index'
+import { Route as AuthenticatedDashboardBrandCampaignsIdRouteImport } from './routes/_authenticated/dashboard/brand/campaigns.$id'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthenticatedRouteRoute = AuthenticatedRouteRouteImport.update({
+  id: '/_authenticated',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/auth/login',
+  path: '/auth/login',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRegisterRoute = AuthRegisterRouteImport.update({
+  id: '/auth/register',
+  path: '/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthenticatedDashboardCreatorRoute =
+  AuthenticatedDashboardCreatorRouteImport.update({
+    id: '/dashboard/creator',
+    path: '/dashboard/creator',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardBrandIndexRoute =
+  AuthenticatedDashboardBrandIndexRouteImport.update({
+    id: '/dashboard/brand/',
+    path: '/dashboard/brand/',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
+const AuthenticatedDashboardBrandCampaignsIdRoute =
+  AuthenticatedDashboardBrandCampaignsIdRouteImport.update({
+    id: '/dashboard/brand/campaigns/$id',
+    path: '/dashboard/brand/campaigns/$id',
+    getParentRoute: () => AuthenticatedRouteRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
+  '/dashboard/brand/': typeof AuthenticatedDashboardBrandIndexRoute
+  '/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/admin': typeof AuthenticatedAdminRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
+  '/dashboard/brand': typeof AuthenticatedDashboardBrandIndexRoute
+  '/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
+  '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/auth/login': typeof AuthLoginRoute
+  '/auth/register': typeof AuthRegisterRoute
+  '/_authenticated/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
+  '/_authenticated/dashboard/brand/': typeof AuthenticatedDashboardBrandIndexRoute
+  '/_authenticated/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/admin'
+    | '/auth/login'
+    | '/auth/register'
+    | '/dashboard/creator'
+    | '/dashboard/brand/'
+    | '/dashboard/brand/campaigns/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/admin'
+    | '/auth/login'
+    | '/auth/register'
+    | '/dashboard/creator'
+    | '/dashboard/brand'
+    | '/dashboard/brand/campaigns/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/_authenticated'
+    | '/_authenticated/admin'
+    | '/auth/login'
+    | '/auth/register'
+    | '/_authenticated/dashboard/creator'
+    | '/_authenticated/dashboard/brand/'
+    | '/_authenticated/dashboard/brand/campaigns/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
+  AuthLoginRoute: typeof AuthLoginRoute
+  AuthRegisterRoute: typeof AuthRegisterRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +137,81 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_authenticated': {
+      id: '/_authenticated'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthenticatedRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/admin': {
+      id: '/_authenticated/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AuthenticatedAdminRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/auth/login': {
+      id: '/auth/login'
+      path: '/auth/login'
+      fullPath: '/auth/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/register': {
+      id: '/auth/register'
+      path: '/auth/register'
+      fullPath: '/auth/register'
+      preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_authenticated/dashboard/creator': {
+      id: '/_authenticated/dashboard/creator'
+      path: '/dashboard/creator'
+      fullPath: '/dashboard/creator'
+      preLoaderRoute: typeof AuthenticatedDashboardCreatorRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/brand/': {
+      id: '/_authenticated/dashboard/brand/'
+      path: '/dashboard/brand'
+      fullPath: '/dashboard/brand/'
+      preLoaderRoute: typeof AuthenticatedDashboardBrandIndexRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
+    '/_authenticated/dashboard/brand/campaigns/$id': {
+      id: '/_authenticated/dashboard/brand/campaigns/$id'
+      path: '/dashboard/brand/campaigns/$id'
+      fullPath: '/dashboard/brand/campaigns/$id'
+      preLoaderRoute: typeof AuthenticatedDashboardBrandCampaignsIdRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
   }
 }
 
+interface AuthenticatedRouteRouteChildren {
+  AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedDashboardCreatorRoute: typeof AuthenticatedDashboardCreatorRoute
+  AuthenticatedDashboardBrandIndexRoute: typeof AuthenticatedDashboardBrandIndexRoute
+  AuthenticatedDashboardBrandCampaignsIdRoute: typeof AuthenticatedDashboardBrandCampaignsIdRoute
+}
+
+const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
+  AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedDashboardCreatorRoute: AuthenticatedDashboardCreatorRoute,
+  AuthenticatedDashboardBrandIndexRoute: AuthenticatedDashboardBrandIndexRoute,
+  AuthenticatedDashboardBrandCampaignsIdRoute:
+    AuthenticatedDashboardBrandCampaignsIdRoute,
+}
+
+const AuthenticatedRouteRouteWithChildren =
+  AuthenticatedRouteRoute._addFileChildren(AuthenticatedRouteRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
+  AuthLoginRoute: AuthLoginRoute,
+  AuthRegisterRoute: AuthRegisterRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

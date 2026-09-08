@@ -127,8 +127,8 @@ export function CreatorOnboarding() {
                 value={values.instagram_handle}
                 onChange={(e) => set("instagram_handle", e.target.value)}
               />
-              {errors.instagram_handle && (
-                <p className="text-sm text-destructive">{errors.instagram_handle}</p>
+              {errors['instagram_handle'] && (
+                <p className="text-sm text-destructive">{errors['instagram_handle']}</p>
               )}
             </div>
           )}
@@ -149,7 +149,7 @@ export function CreatorOnboarding() {
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.niche && <p className="text-sm text-destructive">{errors.niche}</p>}
+                {errors['niche'] && <p className="text-sm text-destructive">{errors['niche']}</p>}
               </div>
               <div className="space-y-2">
                 <Label>City</Label>
@@ -165,7 +165,7 @@ export function CreatorOnboarding() {
                     ))}
                   </SelectContent>
                 </Select>
-                {errors.city && <p className="text-sm text-destructive">{errors.city}</p>}
+                {errors['city'] && <p className="text-sm text-destructive">{errors['city']}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="state">State</Label>
@@ -175,7 +175,7 @@ export function CreatorOnboarding() {
                   value={values.state}
                   onChange={(e) => set("state", e.target.value)}
                 />
-                {errors.state && <p className="text-sm text-destructive">{errors.state}</p>}
+                {errors['state'] && <p className="text-sm text-destructive">{errors['state']}</p>}
               </div>
             </>
           )}
@@ -201,7 +201,7 @@ export function CreatorOnboarding() {
                     Estimated average views per reel: {formatCompact(bracket.avgViews)}
                   </p>
                 )}
-                {errors.bracket && <p className="text-sm text-destructive">{errors.bracket}</p>}
+                {errors['bracket'] && <p className="text-sm text-destructive">{errors['bracket']}</p>}
               </div>
               <div className="space-y-2">
                 <Label htmlFor="er">Engagement rate (%)</Label>
@@ -212,8 +212,8 @@ export function CreatorOnboarding() {
                   value={values.engagement_rate}
                   onChange={(e) => set("engagement_rate", e.target.value)}
                 />
-                {errors.engagement_rate && (
-                  <p className="text-sm text-destructive">{errors.engagement_rate}</p>
+                {errors['engagement_rate'] && (
+                  <p className="text-sm text-destructive">{errors['engagement_rate']}</p>
                 )}
               </div>
               <div className="space-y-2">
@@ -228,8 +228,8 @@ export function CreatorOnboarding() {
                   You'll be shown campaigns paying {formatINR(Number(values.min_rate_per_post) || 0)}{" "}
                   or more prominently.
                 </p>
-                {errors.min_rate_per_post && (
-                  <p className="text-sm text-destructive">{errors.min_rate_per_post}</p>
+                {errors['min_rate_per_post'] && (
+                  <p className="text-sm text-destructive">{errors['min_rate_per_post']}</p>
                 )}
               </div>
             </>
