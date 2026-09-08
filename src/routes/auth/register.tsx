@@ -26,9 +26,10 @@ import { routeForRole } from "@/routes/auth/login";
 type RoleChoice = "brand" | "creator";
 
 export const Route = createFileRoute("/auth/register")({
-  validateSearch: (search: Record<string, unknown>) => ({
-    role: search.role === "brand" ? ("brand" as const) : ("creator" as const),
-  }),
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { role?: "brand" | "creator" } =>
+    search['role'] === "brand" ? { role: "brand" } : { role: "creator" },
   head: () => ({
     meta: [
       { title: "Create your account — AdBridge" },
