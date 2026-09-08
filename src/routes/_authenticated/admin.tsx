@@ -1,0 +1,232 @@
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
+import { useServerFn } from "@tanstack/react-start";
+import { BadgeCheck, ShieldCheck, Users, Wallet } from "lucide-react";
+import { toast } from "sonner";
+
+import { AppShell } from "@/components/AppShell";
+import { EmptyState } from "@/components/EmptyState";
+import { PageLoader } from "@/components/Spinner";
+import { StatusBadge } from "@/components/StatusBadge";
+import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { useProfile } from "@/hooks/useAuth";
+import { supabase } from "@/integrations/supabase/client";
+import { formatCompact, formatINR } from "@/lib/constants";
+import type { ApplicationWithCampaign, Campaign, CreatorProfile } from "@/lib/db";
+import { updateApplicationStatus } from "@/lib/marketplace.functions";
+
+export const Route = createFileRoute("/_authenticated/admin")({
+  head: () => ({
+    meta: [
+      { title: "Admin control room — AdBridge" },
+      {
+        name: "description",
+        content:
+          "Platform metrics, creator verification and manual payout controls for the AdBridge exchange.",
+      },
+      { property: "og:title", content: "Admin control room — AdBridge" },
+      { property: "og:description", content: "Metrics, verification and payouts." },
+    ],
+  }),
+  component: AdminDashboard,
+});
+
+function AdminDashboard() {
+  const { data: profile, isPending: profilePending } = useProfile();
+  const queryClient = useQueryClient();
+  const updateStatus = useServerFn(updateApplicationStatus);
+
+  const creators = useQuery({
+    queryKey: ["admin-creators"],
+    enabled: profile?.role === "admin",
+    queryFn: async (): Promise<CreatorProfile[]> => {
+      const { data, error } = await supabase
+        .from("creator_profiles")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const campaigns = useQuery({
+    queryKey: ["admin-campaigns"],
+    enabled: profile?.role === "admin",
+    queryFn: async (): Promise<Campaign[]> => {
+      const { data, error } = await supabase.from("campaigns").select("*");
+      if (error) throw error;
+      return data ?? [];
+    },
+  });
+
+  const applications = useQuery({
+    queryKey: ["admin-applications"],
+    enabled: profile?.role === "admin",
+    queryFn: async (): Promise<ApplicationWithCampaign[]> => {
+      const { data, error } = await supabase
+        .from("campaign_applications")
+        .select("*, campaigns(*)")
+        .order("applied_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ApplicationWithCampaign[];
+    },
+  });
+
+  const verify = useMutation({
+    mutationFn: async ({ id, value }: { id: string; value: boolean }) => {
+      const { error } = await supabase
+        .from("creator_profiles")
+        .update({ is_verified: value })
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: async () => {
+      toast.success("Creator verification updated");
+      await queryClient.invalidateQueries({ queryKey: ["admin-creators"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const markPaid = useMutation({
+    mutationFn: async (applicationId: string) =>
+      updateStatus({ data: { application_id: applicationId, status: "paid" as const } }),
+    onSuccess: async () => {
+      toast.success("Marked as paid");
+      await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  if (profilePending) return <PageLoader label="Checking access" />;
+
+  if (profile?.role !== "admin")
+    return (
+      <AppShell>
+        <EmptyState
+          icon={ShieldCheck}
+          title="Admins only"
+          description="This control room is restricted to platform administrators."
+        />
+      </AppShell>
+    );
+
+  const paidApplications = (applications.data ?? []).filter((a) => a.status === "paid");
+  const grossVolume = paidApplications.reduce(
+    (sum, a) => sum + Number(a.campaigns?.payout_per_creator ?? 0),
+    0,
+  );
+  const pending = (applications.data ?? []).filter((a) => a.status === "submitted");
+
+  return (
+    <AppShell>
+      <h1 className="text-2xl font-semibold tracking-tight">Admin control room</h1>
+      <p className="mt-1 text-sm text-muted-foreground">
+        Platform-wide health, creator verification and manual payout overrides.
+      </p>
+
+      <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Metric icon={Users} label="Active creators" value={String(creators.data?.length ?? 0)} />
+        <Metric icon={BadgeCheck} label="Total campaigns" value={String(campaigns.data?.length ?? 0)} />
+        <Metric icon={Wallet} label="Gross volume" value={formatINR(grossVolume)} />
+        <Metric icon={ShieldCheck} label="Awaiting payout" value={String(pending.length)} />
+      </div>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Creator verification</h2>
+        {creators.isPending ? (
+          <PageLoader label="Loading creators" />
+        ) : (creators.data ?? []).length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No creators yet"
+            description="Creator profiles appear here as soon as people finish onboarding."
+          />
+        ) : (
+          <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {creators.data!.map((creator) => (
+              <div
+                key={creator.id}
+                className="flex flex-wrap items-center justify-between gap-4 p-4"
+              >
+                <div>
+                  <p className="font-medium">@{creator.instagram_handle}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {creator.niche} · {creator.city} ·{" "}
+                    {formatCompact(creator.follower_count)} followers ·{" "}
+                    {formatINR(creator.min_rate_per_post)} min
+                  </p>
+                </div>
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  Verified
+                  <Switch
+                    checked={creator.is_verified}
+                    disabled={verify.isPending}
+                    onCheckedChange={(value) => verify.mutate({ id: creator.id, value })}
+                  />
+                </label>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
+        <h2 className="text-lg font-semibold">Payout queue</h2>
+        {pending.length === 0 ? (
+          <EmptyState
+            icon={Wallet}
+            title="Nothing awaiting payout"
+            description="Submitted deliverables waiting for verification will queue up here."
+          />
+        ) : (
+          <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {pending.map((application) => (
+              <div
+                key={application.id}
+                className="flex flex-wrap items-center justify-between gap-4 p-4"
+              >
+                <div>
+                  <p className="font-medium">{application.campaigns?.title}</p>
+                  <p className="text-xs text-muted-foreground">
+                    {formatINR(application.campaigns?.payout_per_creator ?? 0)} ·{" "}
+                    {application.submission_link ?? "No link"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-3">
+                  <StatusBadge status={application.status} kind="application" />
+                  <Button
+                    size="sm"
+                    disabled={markPaid.isPending}
+                    onClick={() => markPaid.mutate(application.id)}
+                  >
+                    Mark paid
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+    </AppShell>
+  );
+}
+
+function Metric({
+  icon: Icon,
+  label,
+  value,
+}: {
+  icon: typeof Users;
+  label: string;
+  value: string;
+}) {
+  return (
+    <div className="rounded-xl border border-border bg-card p-5 shadow-panel">
+      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+        <Icon className="size-4 text-primary" /> {label}
+      </div>
+      <p className="mt-2 text-2xl font-semibold">{value}</p>
+    </div>
+  );
+}
