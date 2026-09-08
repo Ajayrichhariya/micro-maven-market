@@ -54,7 +54,7 @@ const schema = z.object({
 function RegisterPage() {
   const { role: initialRole } = Route.useSearch();
   const navigate = useNavigate();
-  const [role, setRole] = useState<RoleChoice>(initialRole);
+  const [role, setRole] = useState<RoleChoice>(initialRole ?? "creator");
   const [emailSent, setEmailSent] = useState<string | null>(null);
   const [googleLoading, setGoogleLoading] = useState(false);
 
