@@ -79,11 +79,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "AdBridge — Micro-Influencer Ad Exchange" },
+      {
+        name: "description",
+        content:
+          "AdBridge connects brands with vetted micro-influencers: launch campaigns, approve creators, verify reels, release payouts.",
+      },
+      { name: "author", content: "AdBridge" },
+      { property: "og:title", content: "AdBridge — Micro-Influencer Ad Exchange" },
+      {
+        property: "og:description",
+        content: "Launch influencer campaigns, approve creators, verify deliverables, pay on proof.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@Lovable" },
