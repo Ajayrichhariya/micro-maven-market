@@ -20,7 +20,12 @@ export type Database = {
           campaign_id: string
           creator_id: string
           id: string
+          last_synced_at: string | null
+          metrics_verified: boolean
           proof_screenshot_url: string | null
+          reported_comments: number
+          reported_likes: number
+          reported_views: number
           status: Database["public"]["Enums"]["application_status"]
           submission_link: string | null
           submitted_at: string | null
@@ -30,7 +35,12 @@ export type Database = {
           campaign_id: string
           creator_id: string
           id?: string
+          last_synced_at?: string | null
+          metrics_verified?: boolean
           proof_screenshot_url?: string | null
+          reported_comments?: number
+          reported_likes?: number
+          reported_views?: number
           status?: Database["public"]["Enums"]["application_status"]
           submission_link?: string | null
           submitted_at?: string | null
@@ -40,7 +50,12 @@ export type Database = {
           campaign_id?: string
           creator_id?: string
           id?: string
+          last_synced_at?: string | null
+          metrics_verified?: boolean
           proof_screenshot_url?: string | null
+          reported_comments?: number
+          reported_likes?: number
+          reported_views?: number
           status?: Database["public"]["Enums"]["application_status"]
           submission_link?: string | null
           submitted_at?: string | null
@@ -58,6 +73,61 @@ export type Database = {
             columns: ["creator_id"]
             isOneToOne: false
             referencedRelation: "creator_profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_messages: {
+        Row: {
+          attachment_url: string | null
+          campaign_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          message: string
+          receiver_id: string
+          sender_id: string
+        }
+        Insert: {
+          attachment_url?: string | null
+          campaign_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message: string
+          receiver_id: string
+          sender_id: string
+        }
+        Update: {
+          attachment_url?: string | null
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          message?: string
+          receiver_id?: string
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_messages_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_messages_receiver_id_fkey"
+            columns: ["receiver_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "campaign_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
         ]
@@ -118,45 +188,60 @@ export type Database = {
       creator_profiles: {
         Row: {
           avg_views: number
+          bio: string
           city: string
           created_at: string
           engagement_rate: number
           follower_count: number
           id: string
           instagram_handle: string
+          is_public: boolean
           is_verified: boolean
           min_rate_per_post: number
           niche: string
+          portfolio_links: string[]
           state: string
           user_id: string
+          username: string | null
+          youtube_handle: string | null
         }
         Insert: {
           avg_views?: number
+          bio?: string
           city?: string
           created_at?: string
           engagement_rate?: number
           follower_count?: number
           id?: string
           instagram_handle: string
+          is_public?: boolean
           is_verified?: boolean
           min_rate_per_post?: number
           niche: string
+          portfolio_links?: string[]
           state?: string
           user_id: string
+          username?: string | null
+          youtube_handle?: string | null
         }
         Update: {
           avg_views?: number
+          bio?: string
           city?: string
           created_at?: string
           engagement_rate?: number
           follower_count?: number
           id?: string
           instagram_handle?: string
+          is_public?: boolean
           is_verified?: boolean
           min_rate_per_post?: number
           niche?: string
+          portfolio_links?: string[]
           state?: string
           user_id?: string
+          username?: string | null
+          youtube_handle?: string | null
         }
         Relationships: [
           {
@@ -198,6 +283,79 @@ export type Database = {
         }
         Relationships: []
       }
+      user_wallets: {
+        Row: {
+          created_at: string
+          current_balance: number
+          locked_escrow: number
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_balance?: number
+          locked_escrow?: number
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_balance?: number
+          locked_escrow?: number
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_wallets_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      wallet_ledger: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          note: string | null
+          reference_id: string | null
+          status: string
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          reference_id?: string | null
+          status?: string
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          note?: string | null
+          reference_id?: string | null
+          status?: string
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "wallet_ledger_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
@@ -210,6 +368,24 @@ export type Database = {
       current_role_is: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
+      }
+      get_public_media_kit: {
+        Args: { _username: string }
+        Returns: {
+          avg_views: number
+          bio: string
+          city: string
+          engagement_rate: number
+          follower_count: number
+          instagram_handle: string
+          is_verified: boolean
+          min_rate_per_post: number
+          niche: string
+          portfolio_links: string[]
+          state: string
+          username: string
+          youtube_handle: string
+        }[]
       }
       has_role: {
         Args: {
