@@ -113,7 +113,9 @@ export const updateApplicationStatus = createServerFn({ method: "POST" })
 
     const { data: application, error: loadError } = await supabase
       .from("campaign_applications")
-      .select("id, status, campaign_id, campaigns!inner(brand_id)")
+      .select(
+        "id, status, campaign_id, campaigns!inner(brand_id, payout_per_creator), creator_profiles!inner(user_id)",
+      )
       .eq("id", data.application_id)
       .maybeSingle();
     if (loadError) throw new Error(loadError.message);
@@ -125,13 +127,26 @@ export const updateApplicationStatus = createServerFn({ method: "POST" })
       .eq("id", userId)
       .maybeSingle();
 
-    const brandId = (application as unknown as { campaigns: { brand_id: string } }).campaigns
-      ?.brand_id;
+    const joined = application as unknown as {
+      campaigns: { brand_id: string; payout_per_creator: number };
+      creator_profiles: { user_id: string };
+    };
+    const brandId = joined.campaigns?.brand_id;
     const isAdmin = profile?.role === "admin";
     if (brandId !== userId && !isAdmin) throw new Error("You cannot manage this application");
 
     if (data.status === "paid" && application.status !== "submitted" && !isAdmin) {
       throw new Error("Payment can only be released after the creator submits proof");
+    }
+
+    if (data.status === "paid" && application.status !== "paid") {
+      const { settleEscrowPayout } = await import("@/lib/wallet.functions");
+      await settleEscrowPayout({
+        brandId,
+        creatorUserId: joined.creator_profiles.user_id,
+        amount: Number(joined.campaigns.payout_per_creator),
+        campaignId: application.campaign_id,
+      });
     }
 
     const { data: updated, error } = await supabase
@@ -150,5 +165,83 @@ export const updateApplicationStatus = createServerFn({ method: "POST" })
         .eq("status", "active");
     }
 
+    return updated;
+  });
+
+export const reportMetricsSchema = z.object({
+  application_id: z.string().uuid(),
+  views: z.number().int().min(0).max(1000000000),
+  likes: z.number().int().min(0).max(1000000000),
+  comments: z.number().int().min(0).max(1000000000),
+});
+
+/** Creator reports live post performance for a submitted deliverable. */
+export const reportPostMetrics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) => reportMetricsSchema.parse(data))
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: application, error: loadError } = await supabase
+      .from("campaign_applications")
+      .select("id, status, creator_profiles!inner(user_id)")
+      .eq("id", data.application_id)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    if (!application) throw new Error("Application not found");
+    const owner = (application as unknown as { creator_profiles: { user_id: string } })
+      .creator_profiles;
+    if (owner?.user_id !== userId) throw new Error("You cannot update this deliverable");
+    if (application.status !== "submitted" && application.status !== "paid")
+      throw new Error("Submit your post link before reporting performance");
+
+    const { data: updated, error } = await supabase
+      .from("campaign_applications")
+      .update({
+        reported_views: data.views,
+        reported_likes: data.likes,
+        reported_comments: data.comments,
+        metrics_verified: false,
+        last_synced_at: new Date().toISOString(),
+      })
+      .eq("id", data.application_id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
+    return updated;
+  });
+
+/** Brand (or admin) confirms the reported performance numbers. */
+export const verifyPostMetrics = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((data: unknown) =>
+    z.object({ application_id: z.string().uuid(), verified: z.boolean() }).parse(data),
+  )
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+    const { data: application, error: loadError } = await supabase
+      .from("campaign_applications")
+      .select("id, campaigns!inner(brand_id)")
+      .eq("id", data.application_id)
+      .maybeSingle();
+    if (loadError) throw new Error(loadError.message);
+    if (!application) throw new Error("Application not found");
+
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("role")
+      .eq("id", userId)
+      .maybeSingle();
+    const brandId = (application as unknown as { campaigns: { brand_id: string } }).campaigns
+      ?.brand_id;
+    if (brandId !== userId && profile?.role !== "admin")
+      throw new Error("You cannot verify this deliverable");
+
+    const { data: updated, error } = await supabase
+      .from("campaign_applications")
+      .update({ metrics_verified: data.verified })
+      .eq("id", data.application_id)
+      .select("*")
+      .single();
+    if (error) throw new Error(error.message);
     return updated;
   });
