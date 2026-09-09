@@ -12,8 +12,10 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
+import { Route as AuthenticatedWalletRouteImport } from './routes/_authenticated/wallet'
 import { Route as AuthLoginRouteImport } from './routes/auth/login'
 import { Route as AuthRegisterRouteImport } from './routes/auth/register'
+import { Route as CreatorUsernameRouteImport } from './routes/creator/$username'
 import { Route as AuthenticatedDashboardCreatorRouteImport } from './routes/_authenticated/dashboard/creator'
 import { Route as AuthenticatedDashboardBrandIndexRouteImport } from './routes/_authenticated/dashboard/brand/index'
 import { Route as AuthenticatedDashboardBrandCampaignsIdRouteImport } from './routes/_authenticated/dashboard/brand/campaigns.$id'
@@ -32,6 +34,11 @@ const AuthenticatedAdminRoute = AuthenticatedAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => AuthenticatedRouteRoute,
 } as any)
+const AuthenticatedWalletRoute = AuthenticatedWalletRouteImport.update({
+  id: '/wallet',
+  path: '/wallet',
+  getParentRoute: () => AuthenticatedRouteRoute,
+} as any)
 const AuthLoginRoute = AuthLoginRouteImport.update({
   id: '/auth/login',
   path: '/auth/login',
@@ -40,6 +47,11 @@ const AuthLoginRoute = AuthLoginRouteImport.update({
 const AuthRegisterRoute = AuthRegisterRouteImport.update({
   id: '/auth/register',
   path: '/auth/register',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CreatorUsernameRoute = CreatorUsernameRouteImport.update({
+  id: '/creator/$username',
+  path: '/creator/$username',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AuthenticatedDashboardCreatorRoute =
@@ -64,8 +76,10 @@ const AuthenticatedDashboardBrandCampaignsIdRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/wallet': typeof AuthenticatedWalletRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/creator/$username': typeof CreatorUsernameRoute
   '/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
   '/dashboard/brand/': typeof AuthenticatedDashboardBrandIndexRoute
   '/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
@@ -73,8 +87,10 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/admin': typeof AuthenticatedAdminRoute
+  '/wallet': typeof AuthenticatedWalletRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/creator/$username': typeof CreatorUsernameRoute
   '/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
   '/dashboard/brand': typeof AuthenticatedDashboardBrandIndexRoute
   '/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
@@ -84,8 +100,10 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
+  '/_authenticated/wallet': typeof AuthenticatedWalletRoute
   '/auth/login': typeof AuthLoginRoute
   '/auth/register': typeof AuthRegisterRoute
+  '/creator/$username': typeof CreatorUsernameRoute
   '/_authenticated/dashboard/creator': typeof AuthenticatedDashboardCreatorRoute
   '/_authenticated/dashboard/brand/': typeof AuthenticatedDashboardBrandIndexRoute
   '/_authenticated/dashboard/brand/campaigns/$id': typeof AuthenticatedDashboardBrandCampaignsIdRoute
@@ -95,8 +113,10 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/admin'
+    | '/wallet'
     | '/auth/login'
     | '/auth/register'
+    | '/creator/$username'
     | '/dashboard/creator'
     | '/dashboard/brand/'
     | '/dashboard/brand/campaigns/$id'
@@ -104,8 +124,10 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/admin'
+    | '/wallet'
     | '/auth/login'
     | '/auth/register'
+    | '/creator/$username'
     | '/dashboard/creator'
     | '/dashboard/brand'
     | '/dashboard/brand/campaigns/$id'
@@ -114,8 +136,10 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/_authenticated/admin'
+    | '/_authenticated/wallet'
     | '/auth/login'
     | '/auth/register'
+    | '/creator/$username'
     | '/_authenticated/dashboard/creator'
     | '/_authenticated/dashboard/brand/'
     | '/_authenticated/dashboard/brand/campaigns/$id'
@@ -126,6 +150,7 @@ export interface RootRouteChildren {
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AuthLoginRoute: typeof AuthLoginRoute
   AuthRegisterRoute: typeof AuthRegisterRoute
+  CreatorUsernameRoute: typeof CreatorUsernameRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -151,6 +176,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthenticatedAdminRouteImport
       parentRoute: typeof AuthenticatedRouteRoute
     }
+    '/_authenticated/wallet': {
+      id: '/_authenticated/wallet'
+      path: '/wallet'
+      fullPath: '/wallet'
+      preLoaderRoute: typeof AuthenticatedWalletRouteImport
+      parentRoute: typeof AuthenticatedRouteRoute
+    }
     '/auth/login': {
       id: '/auth/login'
       path: '/auth/login'
@@ -163,6 +195,13 @@ declare module '@tanstack/react-router' {
       path: '/auth/register'
       fullPath: '/auth/register'
       preLoaderRoute: typeof AuthRegisterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/creator/$username': {
+      id: '/creator/$username'
+      path: '/creator/$username'
+      fullPath: '/creator/$username'
+      preLoaderRoute: typeof CreatorUsernameRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_authenticated/dashboard/creator': {
@@ -191,6 +230,7 @@ declare module '@tanstack/react-router' {
 
 interface AuthenticatedRouteRouteChildren {
   AuthenticatedAdminRoute: typeof AuthenticatedAdminRoute
+  AuthenticatedWalletRoute: typeof AuthenticatedWalletRoute
   AuthenticatedDashboardCreatorRoute: typeof AuthenticatedDashboardCreatorRoute
   AuthenticatedDashboardBrandIndexRoute: typeof AuthenticatedDashboardBrandIndexRoute
   AuthenticatedDashboardBrandCampaignsIdRoute: typeof AuthenticatedDashboardBrandCampaignsIdRoute
@@ -198,6 +238,7 @@ interface AuthenticatedRouteRouteChildren {
 
 const AuthenticatedRouteRouteChildren: AuthenticatedRouteRouteChildren = {
   AuthenticatedAdminRoute: AuthenticatedAdminRoute,
+  AuthenticatedWalletRoute: AuthenticatedWalletRoute,
   AuthenticatedDashboardCreatorRoute: AuthenticatedDashboardCreatorRoute,
   AuthenticatedDashboardBrandIndexRoute: AuthenticatedDashboardBrandIndexRoute,
   AuthenticatedDashboardBrandCampaignsIdRoute:
@@ -212,6 +253,7 @@ const rootRouteChildren: RootRouteChildren = {
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AuthLoginRoute: AuthLoginRoute,
   AuthRegisterRoute: AuthRegisterRoute,
+  CreatorUsernameRoute: CreatorUsernameRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
