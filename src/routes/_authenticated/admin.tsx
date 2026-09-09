@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageLoader } from "@/components/Spinner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { VerificationBadge } from "@/components/VerificationBadge";
 import { useProfile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
@@ -150,21 +150,34 @@ function AdminDashboard() {
                 className="flex flex-wrap items-center justify-between gap-4 p-4"
               >
                 <div>
-                  <p className="font-medium">@{creator.instagram_handle}</p>
-                  <p className="text-xs text-muted-foreground">
+                  <div className="flex items-center gap-2">
+                    <p className="font-medium">@{creator.instagram_handle}</p>
+                    <VerificationBadge verified={creator.is_verified} />
+                  </div>
+                  <p className="mt-1 text-xs text-muted-foreground">
                     {creator.niche} · {creator.city} ·{" "}
                     {formatCompact(creator.follower_count)} followers ·{" "}
                     {formatINR(creator.min_rate_per_post)} min
                   </p>
                 </div>
-                <label className="flex items-center gap-2 text-sm text-muted-foreground">
-                  Verified
-                  <Switch
-                    checked={creator.is_verified}
-                    disabled={verify.isPending}
-                    onCheckedChange={(value) => verify.mutate({ id: creator.id, value })}
-                  />
-                </label>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    variant={creator.is_verified ? "outline" : "default"}
+                    disabled={verify.isPending || creator.is_verified}
+                    onClick={() => verify.mutate({ id: creator.id, value: true })}
+                  >
+                    <BadgeCheck className="size-4" /> Verify
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={verify.isPending || !creator.is_verified}
+                    onClick={() => verify.mutate({ id: creator.id, value: false })}
+                  >
+                    Reject
+                  </Button>
+                </div>
               </div>
             ))}
           </div>

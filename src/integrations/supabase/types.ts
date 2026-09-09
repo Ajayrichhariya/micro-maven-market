@@ -203,6 +203,10 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      brand_can_view_creator: {
+        Args: { _creator_id: string }
+        Returns: boolean
+      }
       current_role_is: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean

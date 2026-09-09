@@ -19,6 +19,7 @@ import { PageLoader, Spinner } from "@/components/Spinner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { VerificationBadge } from "@/components/VerificationBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
 import type { ApplicationWithCreator, Campaign } from "@/lib/db";
@@ -218,8 +219,11 @@ function CampaignDetail() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="font-semibold">
+                      <p className="flex items-center gap-2 font-semibold">
                         @{application.creator_profiles?.instagram_handle}
+                        <VerificationBadge
+                          verified={Boolean(application.creator_profiles?.is_verified)}
+                        />
                       </p>
                       <p className="text-sm text-muted-foreground">
                         {application.creator_profiles?.city} ·{" "}
@@ -307,7 +311,7 @@ function CreatorCard({
             {creator?.niche} · {creator?.city}
           </p>
         </div>
-        {creator?.is_verified && <BadgeCheck className="size-4 text-success" />}
+        <VerificationBadge verified={Boolean(creator?.is_verified)} />
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4 text-xs">
         <Stat label="Followers" value={formatCompact(creator?.follower_count ?? 0)} />
