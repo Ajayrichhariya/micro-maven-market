@@ -9,7 +9,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { PageLoader } from "@/components/Spinner";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
+import { VerificationBadge } from "@/components/VerificationBadge";
 import { useProfile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";

@@ -307,7 +307,7 @@ function CreatorCard({
             {creator?.niche} · {creator?.city}
           </p>
         </div>
-        {creator?.is_verified && <BadgeCheck className="size-4 text-success" />}
+        <VerificationBadge verified={Boolean(creator?.is_verified)} />
       </div>
       <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4 text-xs">
         <Stat label="Followers" value={formatCompact(creator?.follower_count ?? 0)} />
