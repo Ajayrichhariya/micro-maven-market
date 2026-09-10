@@ -1,7 +1,16 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
-import { Compass, ExternalLink, ListChecks, MapPin, Users } from "lucide-react";
+import {
+  BarChart3,
+  Compass,
+  ExternalLink,
+  IdCard,
+  ListChecks,
+  MapPin,
+  MessageSquare,
+  Users,
+} from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
@@ -18,7 +27,10 @@ import { useCreatorProfile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
 import type { ApplicationWithCampaign, Campaign, CreatorProfile } from "@/lib/db";
-import { submitProof } from "@/lib/marketplace.functions";
+import { reportPostMetrics, submitProof } from "@/lib/marketplace.functions";
+import { callWithAuth } from "@/lib/server-call";
+import { CampaignChat } from "@/components/CampaignChat";
+import { MediaKitEditor } from "@/components/MediaKitEditor";
 
 export const Route = createFileRoute("/_authenticated/dashboard/creator")({
   head: () => ({
