@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "@tanstack/react-router";
-import { LogOut, Radio, ShieldCheck, Sparkles } from "lucide-react";
+import { LogOut, Radio, ShieldCheck, Sparkles, Wallet } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { Button } from "@/components/ui/button";
@@ -41,6 +41,12 @@ export function AppShell({ children }: { children: ReactNode }) {
           </Link>
 
           <nav className="flex items-center gap-2">
+            <Button asChild variant="ghost" size="sm">
+              <Link to="/wallet">
+                <Wallet className="size-4" />
+                <span className="hidden sm:inline">Wallet</span>
+              </Link>
+            </Button>
             {profile?.role === "admin" && (
               <Button asChild variant="ghost" size="sm">
                 <Link to="/admin">
