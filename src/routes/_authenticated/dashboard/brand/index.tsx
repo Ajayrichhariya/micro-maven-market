@@ -43,6 +43,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { CITIES, FOLLOWER_BRACKETS, NICHES, formatCompact, formatINR } from "@/lib/constants";
 import type { Campaign } from "@/lib/db";
 import { createCampaign } from "@/lib/marketplace.functions";
+import { callWithAuth } from "@/lib/server-call";
 
 export const Route = createFileRoute("/_authenticated/dashboard/brand/")({
   head: () => ({
@@ -221,7 +222,7 @@ function CampaignWizard({
 
   const mutation = useMutation({
     mutationFn: async (values: z.output<typeof formSchema>) =>
-      create({ data: { ...values, status: "active" as const } }),
+      callWithAuth(create, { ...values, status: "active" as const }),
     onSuccess: async () => {
       toast.success("Campaign published — creators can apply now");
       form.reset();
