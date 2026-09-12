@@ -104,7 +104,7 @@ export const applicationStatusSchema = z.object({
   status: z.enum(["approved", "rejected", "paid"]),
 });
 
-/** PATCH /api/applications/status — brand/admin approves, rejects, or releases payment. */
+/** PATCH /api/applications/status — platform admin only: assigns, rejects, or releases payment. */
 export const updateApplicationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => applicationStatusSchema.parse(data))
@@ -133,9 +133,9 @@ export const updateApplicationStatus = createServerFn({ method: "POST" })
     };
     const brandId = joined.campaigns?.brand_id;
     const isAdmin = profile?.role === "admin";
-    if (brandId !== userId && !isAdmin) throw new Error("You cannot manage this application");
+    if (!isAdmin) throw new Error("Only the platform team can decide applications and payouts");
 
-    if (data.status === "paid" && application.status !== "submitted" && !isAdmin) {
+    if (data.status === "paid" && application.status !== "submitted") {
       throw new Error("Payment can only be released after the creator submits proof");
     }
 
