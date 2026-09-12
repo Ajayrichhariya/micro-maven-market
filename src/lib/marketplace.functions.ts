@@ -210,7 +210,7 @@ export const reportPostMetrics = createServerFn({ method: "POST" })
     return updated;
   });
 
-/** Brand (or admin) confirms the reported performance numbers. */
+/** Platform admin confirms the reported performance numbers. */
 export const verifyPostMetrics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -220,7 +220,7 @@ export const verifyPostMetrics = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: application, error: loadError } = await supabase
       .from("campaign_applications")
-      .select("id, campaigns!inner(brand_id)")
+      .select("id")
       .eq("id", data.application_id)
       .maybeSingle();
     if (loadError) throw new Error(loadError.message);
@@ -231,10 +231,8 @@ export const verifyPostMetrics = createServerFn({ method: "POST" })
       .select("role")
       .eq("id", userId)
       .maybeSingle();
-    const brandId = (application as unknown as { campaigns: { brand_id: string } }).campaigns
-      ?.brand_id;
-    if (brandId !== userId && profile?.role !== "admin")
-      throw new Error("You cannot verify this deliverable");
+    if (profile?.role !== "admin")
+      throw new Error("Only the platform team can verify deliverables");
 
     const { data: updated, error } = await supabase
       .from("campaign_applications")
