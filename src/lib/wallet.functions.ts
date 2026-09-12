@@ -177,7 +177,7 @@ export const lockCampaignEscrow = createServerFn({ method: "POST" })
     return { locked: amount };
   });
 
-/** Internal: brand escrow -> creator balance, minus the platform fee. */
+/** Internal: brand escrow -> platform (admin) wallet -> creator balance, platform keeps the fee. */
 export async function settleEscrowPayout(params: {
   brandId: string;
   creatorUserId: string;
@@ -185,8 +185,20 @@ export async function settleEscrowPayout(params: {
   campaignId: string;
 }) {
   const db = await admin();
+
+  const { data: adminProfile } = await db
+    .from("profiles")
+    .select("id")
+    .eq("role", "admin")
+    .order("created_at", { ascending: true })
+    .limit(1)
+    .maybeSingle();
+  if (!adminProfile) throw new Error("No platform admin account is configured");
+  const platformId = adminProfile.id;
+
   const brandWallet = await ensureWallet(params.brandId);
   const creatorWallet = await ensureWallet(params.creatorUserId);
+  const platformWallet = await ensureWallet(platformId);
 
   const locked = Number(brandWallet.locked_escrow);
   if (locked < params.amount)
@@ -201,6 +213,13 @@ export async function settleEscrowPayout(params: {
     .eq("user_id", params.brandId);
   if (brandError) throw new Error(brandError.message);
 
+  // Money reaches the platform first, then the platform pays the creator.
+  const { error: platformError } = await db
+    .from("user_wallets")
+    .update({ current_balance: Number(platformWallet.current_balance) + fee })
+    .eq("user_id", platformId);
+  if (platformError) throw new Error(platformError.message);
+
   const { error: creatorError } = await db
     .from("user_wallets")
     .update({ current_balance: Number(creatorWallet.current_balance) + net })
@@ -213,7 +232,21 @@ export async function settleEscrowPayout(params: {
       amount: -params.amount,
       transaction_type: "escrow_release",
       reference_id: params.campaignId,
-      note: "Payout released to creator",
+      note: "Released to the platform for creator payout",
+    },
+    {
+      user_id: platformId,
+      amount: params.amount,
+      transaction_type: "escrow_release",
+      reference_id: params.campaignId,
+      note: "Brand payment received by the platform",
+    },
+    {
+      user_id: platformId,
+      amount: -net,
+      transaction_type: "payout",
+      reference_id: params.campaignId,
+      note: "Paid out to creator",
     },
     {
       user_id: params.creatorUserId,
@@ -223,11 +256,11 @@ export async function settleEscrowPayout(params: {
       note: `Campaign payout (after ${PLATFORM_FEE_RATE * 100}% platform fee)`,
     },
     {
-      user_id: params.brandId,
-      amount: -fee,
+      user_id: platformId,
+      amount: fee,
       transaction_type: "platform_fee",
       reference_id: params.campaignId,
-      note: "Platform fee",
+      note: "Platform commission",
     },
   ]);
 

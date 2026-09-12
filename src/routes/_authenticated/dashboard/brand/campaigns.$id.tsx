@@ -4,34 +4,27 @@ import { useServerFn } from "@tanstack/react-start";
 import {
   ArrowLeft,
   BadgeCheck,
-  Check,
   Download,
   ExternalLink,
   FileText,
-  Image as ImageIcon,
   Lock,
   MessageSquare,
+  ShieldCheck,
   Users,
-  X,
 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 
 import { AppShell } from "@/components/AppShell";
-import { CampaignChat } from "@/components/CampaignChat";
 import { EmptyState } from "@/components/EmptyState";
 import { PageLoader, Spinner } from "@/components/Spinner";
+import { PlatformChat } from "@/components/PlatformChat";
 import { StatusBadge } from "@/components/StatusBadge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { VerificationBadge } from "@/components/VerificationBadge";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
-import type { ApplicationWithCreator, Campaign } from "@/lib/db";
-import {
-  updateApplicationStatus,
-  verifyPostMetrics,
-} from "@/lib/marketplace.functions";
+import type { CampaignApplication, Campaign } from "@/lib/db";
 import { downloadReportCsv, openRoiReport } from "@/lib/roi-report";
 import { callWithAuth } from "@/lib/server-call";
 import { lockCampaignEscrow } from "@/lib/wallet.functions";
@@ -43,24 +36,25 @@ export const Route = createFileRoute("/_authenticated/dashboard/brand/campaigns/
       {
         name: "description",
         content:
-          "Review applicants, verify submitted reels and release creator payouts for this campaign.",
+          "Track applications, fund escrow and follow deliverables handled by the AdBridge platform team.",
       },
       { property: "og:title", content: "Campaign tracking — AdBridge" },
-      { property: "og:description", content: "Review applicants and release payouts." },
+      { property: "og:description", content: "Track your campaign and its deliverables." },
     ],
   }),
   component: CampaignDetail,
 });
 
+function creatorLabel(application: CampaignApplication) {
+  return `Creator #${application.creator_id.slice(0, 6).toUpperCase()}`;
+}
+
 function CampaignDetail() {
   const { id } = Route.useParams();
   const queryClient = useQueryClient();
-  const updateStatus = useServerFn(updateApplicationStatus);
-  const verifyMetrics = useServerFn(verifyPostMetrics);
   const lockEscrow = useServerFn(lockCampaignEscrow);
-  const [busy, setBusy] = useState<string | null>(null);
   const [funding, setFunding] = useState(false);
-  const [chatWith, setChatWith] = useState<string | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
 
   const campaign = useQuery({
     queryKey: ["campaign", id],
@@ -90,14 +84,14 @@ function CampaignDetail() {
 
   const applications = useQuery({
     queryKey: ["campaign-applications", id],
-    queryFn: async (): Promise<ApplicationWithCreator[]> => {
+    queryFn: async (): Promise<CampaignApplication[]> => {
       const { data, error } = await supabase
         .from("campaign_applications")
-        .select("*, creator_profiles(*)")
+        .select("*")
         .eq("campaign_id", id)
         .order("applied_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ApplicationWithCreator[];
+      return (data ?? []) as CampaignApplication[];
     },
   });
 
@@ -107,43 +101,11 @@ function CampaignDetail() {
     await queryClient.invalidateQueries({ queryKey: ["campaign-escrow", id] });
   };
 
-  const act = async (applicationId: string, status: "approved" | "rejected" | "paid") => {
-    setBusy(applicationId);
-    try {
-      await callWithAuth(updateStatus, { application_id: applicationId, status });
-      toast.success(
-        status === "paid"
-          ? "Payment released"
-          : status === "approved"
-            ? "Creator approved"
-            : "Application rejected",
-      );
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Action failed");
-    } finally {
-      setBusy(null);
-    }
-  };
-
-  const verify = async (applicationId: string, verified: boolean) => {
-    setBusy(applicationId);
-    try {
-      await callWithAuth(verifyMetrics, { application_id: applicationId, verified });
-      toast.success(verified ? "Performance verified" : "Verification removed");
-      await refresh();
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Could not verify");
-    } finally {
-      setBusy(null);
-    }
-  };
-
   const fundEscrow = async () => {
     setFunding(true);
     try {
       const result = await callWithAuth(lockEscrow, { campaign_id: id });
-      toast.success(`${formatINR(result.locked)} locked in escrow`);
+      toast.success(`${formatINR(result.locked)} paid into platform escrow`);
       await refresh();
     } catch (error) {
       toast.error(error instanceof Error ? error.message : "Could not fund escrow");
@@ -170,9 +132,9 @@ function CampaignDetail() {
     );
 
   const list = applications.data ?? [];
-  const applicants = list.filter((a) => a.status === "applied");
-  const submissions = list.filter((a) => a.status === "submitted" || a.status === "paid");
+  const pending = list.filter((a) => a.status === "applied");
   const roster = list.filter((a) => a.status === "approved");
+  const submissions = list.filter((a) => a.status === "submitted" || a.status === "paid");
   const escrowFunded = (escrow.data ?? 0) > 0;
 
   const reportInput = {
@@ -181,10 +143,10 @@ function CampaignDetail() {
     city: campaign.data.target_city,
     budget: Number(campaign.data.total_budget),
     rows: list.map((a) => ({
-      handle: a.creator_profiles?.instagram_handle ?? "creator",
-      city: a.creator_profiles?.city ?? "—",
-      followers: a.creator_profiles?.follower_count ?? 0,
-      verified: Boolean(a.creator_profiles?.is_verified),
+      handle: creatorLabel(a),
+      city: campaign.data!.target_city,
+      followers: 0,
+      verified: a.metrics_verified,
       status: a.status,
       views: a.reported_views ?? 0,
       likes: a.reported_likes ?? 0,
@@ -228,17 +190,21 @@ function CampaignDetail() {
         <div className="mt-5 flex flex-wrap items-center gap-3 border-t border-border pt-5">
           {escrowFunded ? (
             <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-xs text-primary">
-              <Lock className="size-3.5" /> {formatINR(escrow.data ?? 0)} secured in escrow
+              <Lock className="size-3.5" /> {formatINR(escrow.data ?? 0)} held by the platform
             </span>
           ) : (
             <Button onClick={fundEscrow} disabled={funding}>
-              {funding ? <Spinner /> : <Lock className="size-4" />} Fund escrow (
+              {funding ? <Spinner /> : <Lock className="size-4" />} Pay into escrow (
               {formatINR(
                 Number(campaign.data.payout_per_creator) * campaign.data.max_creators_needed,
               )}
               )
             </Button>
           )}
+          <Button variant="outline" onClick={() => setChatOpen((v) => !v)}>
+            <MessageSquare className="size-4" />
+            {chatOpen ? "Close platform chat" : "Chat with platform team"}
+          </Button>
           <Button variant="outline" onClick={() => openRoiReport(reportInput)}>
             <FileText className="size-4" /> ROI report
           </Button>
@@ -247,48 +213,47 @@ function CampaignDetail() {
           </Button>
         </div>
 
-        <p className="mt-5 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
+        <p className="mt-5 flex items-start gap-2 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
+          <ShieldCheck className="mt-0.5 size-3.5 shrink-0 text-primary" />
+          <span>
+            AdBridge works as the middleman: our team selects and manages the creators, holds your
+            payment in escrow and pays the creators after the posts are verified. For anything
+            related to this campaign, message the platform team.
+          </span>
+        </p>
+
+        <p className="mt-3 rounded-lg border border-border bg-background p-3 text-xs text-muted-foreground">
           <span className="font-medium text-foreground">Guidelines: </span>
           {campaign.data.guidelines}
         </p>
       </div>
 
-      <Tabs defaultValue="applicants" className="mt-8">
+      {chatOpen && (
+        <div className="mt-6">
+          <PlatformChat campaignId={id} />
+        </div>
+      )}
+
+      <Tabs defaultValue="pipeline" className="mt-8">
         <TabsList>
-          <TabsTrigger value="applicants">Applicants ({applicants.length})</TabsTrigger>
-          <TabsTrigger value="roster">Approved ({roster.length})</TabsTrigger>
+          <TabsTrigger value="pipeline">In review ({pending.length})</TabsTrigger>
+          <TabsTrigger value="roster">Assigned ({roster.length})</TabsTrigger>
           <TabsTrigger value="submissions">Submissions ({submissions.length})</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="applicants" className="mt-6">
+        <TabsContent value="pipeline" className="mt-6">
           {applications.isPending ? (
-            <PageLoader label="Loading applicants" />
-          ) : applicants.length === 0 ? (
+            <PageLoader label="Loading pipeline" />
+          ) : pending.length === 0 ? (
             <EmptyState
               icon={Users}
-              title="No pending applicants"
-              description="Creators matching this niche and city will show up here as they apply."
+              title="No creators in review"
+              description="Our team is sourcing creators for this brief. You'll see them here once they're shortlisted."
             />
           ) : (
             <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-              {applicants.map((application) => (
-                <CreatorCard key={application.id} application={application}>
-                  <Button
-                    size="sm"
-                    disabled={busy === application.id}
-                    onClick={() => act(application.id, "approved")}
-                  >
-                    {busy === application.id ? <Spinner /> : <Check className="size-4" />} Approve
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={busy === application.id}
-                    onClick={() => act(application.id, "rejected")}
-                  >
-                    <X className="size-4" /> Reject
-                  </Button>
-                </CreatorCard>
+              {pending.map((application) => (
+                <AnonCard key={application.id} application={application} note="Being reviewed by the platform team" />
               ))}
             </div>
           )}
@@ -298,34 +263,17 @@ function CampaignDetail() {
           {roster.length === 0 ? (
             <EmptyState
               icon={BadgeCheck}
-              title="No approved creators yet"
-              description="Approve applicants and they'll appear here while they produce their deliverable."
+              title="No creators assigned yet"
+              description="The platform team assigns creators to your campaign and they appear here while producing content."
             />
           ) : (
-            <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
               {roster.map((application) => (
-                <div key={application.id} className="space-y-3">
-                  <CreatorCard application={application}>
-                    <span className="text-xs text-muted-foreground">Awaiting deliverable</span>
-                    <Button
-                      size="sm"
-                      variant="outline"
-                      onClick={() =>
-                        setChatWith(chatWith === application.id ? null : application.id)
-                      }
-                    >
-                      <MessageSquare className="size-4" />
-                      {chatWith === application.id ? "Close chat" : "Chat"}
-                    </Button>
-                  </CreatorCard>
-                  {chatWith === application.id && application.creator_profiles && (
-                    <CampaignChat
-                      campaignId={id}
-                      peerId={application.creator_profiles.user_id}
-                      peerLabel={`@${application.creator_profiles.instagram_handle}`}
-                    />
-                  )}
-                </div>
+                <AnonCard
+                  key={application.id}
+                  application={application}
+                  note="Assigned — producing the deliverable"
+                />
               ))}
             </div>
           )}
@@ -336,7 +284,7 @@ function CampaignDetail() {
             <EmptyState
               icon={ExternalLink}
               title="No submissions yet"
-              description="Once approved creators post their reel and submit the link, you can verify and pay here."
+              description="Published posts appear here with their performance once the platform team verifies them."
             />
           ) : (
             <div className="space-y-4">
@@ -347,15 +295,11 @@ function CampaignDetail() {
                 >
                   <div className="flex flex-wrap items-start justify-between gap-3">
                     <div>
-                      <p className="flex items-center gap-2 font-semibold">
-                        @{application.creator_profiles?.instagram_handle}
-                        <VerificationBadge
-                          verified={Boolean(application.creator_profiles?.is_verified)}
-                        />
-                      </p>
+                      <p className="font-semibold">{creatorLabel(application)}</p>
                       <p className="text-sm text-muted-foreground">
-                        {application.creator_profiles?.city} ·{" "}
-                        {formatCompact(application.creator_profiles?.follower_count ?? 0)} followers
+                        {application.metrics_verified
+                          ? "Performance verified by the platform team"
+                          : "Awaiting platform verification"}
                       </p>
                     </div>
                     <StatusBadge status={application.status} kind="application" />
@@ -370,63 +314,15 @@ function CampaignDetail() {
                     />
                   </div>
 
-                  <div className="mt-4 flex flex-wrap items-center gap-3">
-                    {application.submission_link && (
-                      <a
-                        href={application.submission_link}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-                      >
-                        <ExternalLink className="size-3.5" /> Open submitted reel
-                      </a>
-                    )}
-                    {application.proof_screenshot_url && (
-                      <ProofLink path={application.proof_screenshot_url} />
-                    )}
-                  </div>
-
-                  <div className="mt-5 flex flex-wrap items-center gap-3">
-                    <Button
-                      variant={application.metrics_verified ? "outline" : "secondary"}
-                      disabled={busy === application.id}
-                      onClick={() => verify(application.id, !application.metrics_verified)}
+                  {application.submission_link && (
+                    <a
+                      href={application.submission_link}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="mt-4 inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
                     >
-                      <BadgeCheck className="size-4" />
-                      {application.metrics_verified
-                        ? "Performance verified"
-                        : "Verify performance"}
-                    </Button>
-                    {application.status === "submitted" && (
-                      <Button
-                        disabled={busy === application.id}
-                        onClick={() => act(application.id, "paid")}
-                      >
-                        {busy === application.id ? <Spinner /> : <BadgeCheck className="size-4" />}{" "}
-                        Release {formatINR(campaign.data!.payout_per_creator)}
-                      </Button>
-                    )}
-                    {application.creator_profiles && (
-                      <Button
-                        variant="outline"
-                        onClick={() =>
-                          setChatWith(chatWith === application.id ? null : application.id)
-                        }
-                      >
-                        <MessageSquare className="size-4" />
-                        {chatWith === application.id ? "Close chat" : "Chat"}
-                      </Button>
-                    )}
-                  </div>
-
-                  {chatWith === application.id && application.creator_profiles && (
-                    <div className="mt-4">
-                      <CampaignChat
-                        campaignId={id}
-                        peerId={application.creator_profiles.user_id}
-                        peerLabel={`@${application.creator_profiles.instagram_handle}`}
-                      />
-                    </div>
+                      <ExternalLink className="size-3.5" /> Open published post
+                    </a>
                   )}
                 </div>
               ))}
@@ -438,56 +334,16 @@ function CampaignDetail() {
   );
 }
 
-function ProofLink({ path }: { path: string }) {
-  const [loading, setLoading] = useState(false);
-
-  const open = async () => {
-    setLoading(true);
-    const { data, error } = await supabase.storage.from("proofs").createSignedUrl(path, 300);
-    setLoading(false);
-    if (error || !data) {
-      toast.error("Could not open the proof screenshot");
-      return;
-    }
-    window.open(data.signedUrl, "_blank", "noopener");
-  };
-
-  return (
-    <button
-      type="button"
-      onClick={open}
-      className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
-    >
-      {loading ? <Spinner /> : <ImageIcon className="size-3.5" />} View proof screenshot
-    </button>
-  );
-}
-
-function CreatorCard({
-  application,
-  children,
-}: {
-  application: ApplicationWithCreator;
-  children: React.ReactNode;
-}) {
-  const creator = application.creator_profiles;
+function AnonCard({ application, note }: { application: CampaignApplication; note: string }) {
   return (
     <div className="rounded-xl border border-border bg-card p-5 shadow-panel">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-semibold">@{creator?.instagram_handle}</p>
-          <p className="text-sm text-muted-foreground">
-            {creator?.niche} · {creator?.city}
-          </p>
+          <p className="font-semibold">{creatorLabel(application)}</p>
+          <p className="mt-1 text-sm text-muted-foreground">{note}</p>
         </div>
-        <VerificationBadge verified={Boolean(creator?.is_verified)} />
+        <StatusBadge status={application.status} kind="application" />
       </div>
-      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-border pt-4 text-xs">
-        <Stat label="Followers" value={formatCompact(creator?.follower_count ?? 0)} />
-        <Stat label="Avg views" value={formatCompact(creator?.avg_views ?? 0)} />
-        <Stat label="Engagement" value={`${creator?.engagement_rate ?? 0}%`} />
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-2">{children}</div>
     </div>
   );
 }

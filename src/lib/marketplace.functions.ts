@@ -104,7 +104,7 @@ export const applicationStatusSchema = z.object({
   status: z.enum(["approved", "rejected", "paid"]),
 });
 
-/** PATCH /api/applications/status — brand/admin approves, rejects, or releases payment. */
+/** PATCH /api/applications/status — platform admin only: assigns, rejects, or releases payment. */
 export const updateApplicationStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) => applicationStatusSchema.parse(data))
@@ -133,9 +133,9 @@ export const updateApplicationStatus = createServerFn({ method: "POST" })
     };
     const brandId = joined.campaigns?.brand_id;
     const isAdmin = profile?.role === "admin";
-    if (brandId !== userId && !isAdmin) throw new Error("You cannot manage this application");
+    if (!isAdmin) throw new Error("Only the platform team can decide applications and payouts");
 
-    if (data.status === "paid" && application.status !== "submitted" && !isAdmin) {
+    if (data.status === "paid" && application.status !== "submitted") {
       throw new Error("Payment can only be released after the creator submits proof");
     }
 
@@ -210,7 +210,7 @@ export const reportPostMetrics = createServerFn({ method: "POST" })
     return updated;
   });
 
-/** Brand (or admin) confirms the reported performance numbers. */
+/** Platform admin confirms the reported performance numbers. */
 export const verifyPostMetrics = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator((data: unknown) =>
@@ -220,7 +220,7 @@ export const verifyPostMetrics = createServerFn({ method: "POST" })
     const { supabase, userId } = context;
     const { data: application, error: loadError } = await supabase
       .from("campaign_applications")
-      .select("id, campaigns!inner(brand_id)")
+      .select("id")
       .eq("id", data.application_id)
       .maybeSingle();
     if (loadError) throw new Error(loadError.message);
@@ -231,10 +231,8 @@ export const verifyPostMetrics = createServerFn({ method: "POST" })
       .select("role")
       .eq("id", userId)
       .maybeSingle();
-    const brandId = (application as unknown as { campaigns: { brand_id: string } }).campaigns
-      ?.brand_id;
-    if (brandId !== userId && profile?.role !== "admin")
-      throw new Error("You cannot verify this deliverable");
+    if (profile?.role !== "admin")
+      throw new Error("Only the platform team can verify deliverables");
 
     const { data: updated, error } = await supabase
       .from("campaign_applications")
