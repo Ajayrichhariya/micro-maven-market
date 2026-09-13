@@ -308,6 +308,7 @@ function DeliverableCard({
   onSubmit: (file: File | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null);
+  const [chatOpen, setChatOpen] = useState(false);
   const stageIndex = TRACKER.indexOf(application.status as (typeof TRACKER)[number]);
   const canSubmit = application.status === "approved" || application.status === "submitted";
 
