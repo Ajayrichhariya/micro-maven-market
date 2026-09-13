@@ -63,14 +63,39 @@ function AdminDashboard() {
   const applications = useQuery({
     queryKey: ["admin-applications"],
     enabled: profile?.role === "admin",
-    queryFn: async (): Promise<ApplicationWithCampaign[]> => {
+    queryFn: async (): Promise<AdminApplication[]> => {
       const { data, error } = await supabase
         .from("campaign_applications")
-        .select("*, campaigns(*)")
+        .select("*, campaigns(*), creator_profiles(*)")
         .order("applied_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ApplicationWithCampaign[];
+      return (data ?? []) as AdminApplication[];
     },
+  });
+
+  const decide = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: "approved" | "rejected";
+    }) => callWithAuth(updateStatus, { application_id: id, status }),
+    onSuccess: async () => {
+      toast.success("Application updated");
+      await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const verifyMetrics = useMutation({
+    mutationFn: async (id: string) =>
+      callWithAuth(verifyPost, { application_id: id, verified: true }),
+    onSuccess: async () => {
+      toast.success("Performance verified");
+      await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const verify = useMutation({
