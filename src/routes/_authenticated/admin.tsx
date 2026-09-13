@@ -211,6 +211,60 @@ function AdminDashboard() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold">Assignment queue</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          You decide which creator gets each campaign. Brands never see or contact creators.
+        </p>
+        {incoming.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No new applications"
+            description="Creator applications waiting for your decision will appear here."
+          />
+        ) : (
+          <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {incoming.map((application) => (
+              <div
+                key={application.id}
+                className="flex flex-wrap items-center justify-between gap-4 p-4"
+              >
+                <div>
+                  <p className="font-medium">{application.campaigns?.title}</p>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>@{application.creator_profiles?.instagram_handle ?? "creator"}</span>
+                    <span>
+                      {formatCompact(application.creator_profiles?.follower_count ?? 0)} followers
+                    </span>
+                    <span>{application.creator_profiles?.city}</span>
+                    <VerificationBadge
+                      verified={Boolean(application.creator_profiles?.is_verified)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={decide.isPending}
+                    onClick={() => decide.mutate({ id: application.id, status: "approved" })}
+                  >
+                    Assign creator
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={decide.isPending}
+                    onClick={() => decide.mutate({ id: application.id, status: "rejected" })}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold">Payout queue</h2>
         {pending.length === 0 ? (
           <EmptyState
