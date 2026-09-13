@@ -349,7 +349,7 @@ function DeliverableCard({
 
       {application.status === "applied" && (
         <p className="mt-4 text-sm text-muted-foreground">
-          Waiting for the brand to approve your application.
+          Waiting for the AdBridge team to assign you to this campaign.
         </p>
       )}
       {application.status === "rejected" && (
