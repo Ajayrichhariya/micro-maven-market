@@ -135,7 +135,7 @@ function ExploreTab({ creator }: { creator: CreatorProfile }) {
       if (error) throw error;
     },
     onSuccess: async () => {
-      toast.success("Applied — the brand will review your profile");
+      toast.success("Applied — the AdBridge team will review your profile");
       await queryClient.invalidateQueries({ queryKey: ["my-applications", creator.id] });
       await queryClient.invalidateQueries({ queryKey: ["my-deliverables", creator.id] });
     },
