@@ -142,6 +142,7 @@ function AdminDashboard() {
     0,
   );
   const pending = (applications.data ?? []).filter((a) => a.status === "submitted");
+  const incoming = (applications.data ?? []).filter((a) => a.status === "applied");
 
   return (
     <AppShell>
