@@ -115,7 +115,7 @@ function AdminDashboard() {
 
   const markPaid = useMutation({
     mutationFn: async (applicationId: string) =>
-      updateStatus({ data: { application_id: applicationId, status: "paid" as const } }),
+      callWithAuth(updateStatus, { application_id: applicationId, status: "paid" as const }),
     onSuccess: async () => {
       toast.success("Marked as paid");
       await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
