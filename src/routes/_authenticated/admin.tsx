@@ -285,9 +285,23 @@ function AdminDashboard() {
                     {formatINR(application.campaigns?.payout_per_creator ?? 0)} ·{" "}
                     {application.submission_link ?? "No link"}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatCompact(application.reported_views)} views ·{" "}
+                    {formatCompact(application.reported_likes)} likes ·{" "}
+                    {formatCompact(application.reported_comments)} comments ·{" "}
+                    {application.metrics_verified ? "verified" : "unverified"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={application.status} kind="application" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={verifyMetrics.isPending || application.metrics_verified}
+                    onClick={() => verifyMetrics.mutate(application.id)}
+                  >
+                    Verify performance
+                  </Button>
                   <Button
                     size="sm"
                     disabled={markPaid.isPending}
