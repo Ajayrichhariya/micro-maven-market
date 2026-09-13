@@ -29,8 +29,8 @@ import { formatCompact, formatINR } from "@/lib/constants";
 import type { ApplicationWithCampaign, Campaign, CreatorProfile } from "@/lib/db";
 import { reportPostMetrics, submitProof } from "@/lib/marketplace.functions";
 import { callWithAuth } from "@/lib/server-call";
-import { CampaignChat } from "@/components/CampaignChat";
 import { MediaKitEditor } from "@/components/MediaKitEditor";
+import { PlatformChat } from "@/components/PlatformChat";
 
 export const Route = createFileRoute("/_authenticated/dashboard/creator")({
   head: () => ({
