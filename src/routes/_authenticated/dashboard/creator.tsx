@@ -396,6 +396,89 @@ function DeliverableCard({
           </div>
         </div>
       )}
+
+      {(application.status === "submitted" || application.status === "paid") && (
+        <MetricsForm application={application} />
+      )}
+
+      <div className="mt-5 border-t border-border pt-5">
+        <Button variant="outline" size="sm" onClick={() => setChatOpen((v) => !v)}>
+          <MessageSquare className="size-4" /> {chatOpen ? "Hide" : "Chat with AdBridge team"}
+        </Button>
+        {chatOpen && application.campaign_id && (
+          <div className="mt-4">
+            <PlatformChat campaignId={application.campaign_id} />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function MetricsForm({ application }: { application: ApplicationWithCampaign }) {
+  const queryClient = useQueryClient();
+  const report = useServerFn(reportPostMetrics);
+  const [views, setViews] = useState(String(application.reported_views ?? 0));
+  const [likes, setLikes] = useState(String(application.reported_likes ?? 0));
+  const [comments, setComments] = useState(String(application.reported_comments ?? 0));
+
+  const save = useMutation({
+    mutationFn: async () =>
+      callWithAuth(report, {
+        application_id: application.id,
+        views: Number(views) || 0,
+        likes: Number(likes) || 0,
+        comments: Number(comments) || 0,
+      }),
+    onSuccess: async () => {
+      toast.success("Performance sent to the AdBridge team for verification");
+      await queryClient.invalidateQueries({ queryKey: ["my-deliverables"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  return (
+    <div className="mt-5 border-t border-border pt-5">
+      <div className="flex items-center gap-2 text-sm font-medium">
+        <BarChart3 className="size-4 text-primary" /> Post performance
+        <span className="ml-auto text-xs font-normal text-muted-foreground">
+          {application.metrics_verified ? "Verified by AdBridge" : "Awaiting verification"}
+        </span>
+      </div>
+      <div className="mt-3 grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+        <div className="space-y-1.5">
+          <Label htmlFor={`views-${application.id}`}>Views</Label>
+          <Input
+            id={`views-${application.id}`}
+            inputMode="numeric"
+            value={views}
+            onChange={(e) => setViews(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`likes-${application.id}`}>Likes</Label>
+          <Input
+            id={`likes-${application.id}`}
+            inputMode="numeric"
+            value={likes}
+            onChange={(e) => setLikes(e.target.value)}
+          />
+        </div>
+        <div className="space-y-1.5">
+          <Label htmlFor={`comments-${application.id}`}>Comments</Label>
+          <Input
+            id={`comments-${application.id}`}
+            inputMode="numeric"
+            value={comments}
+            onChange={(e) => setComments(e.target.value)}
+          />
+        </div>
+        <div className="flex items-end">
+          <Button variant="outline" disabled={save.isPending} onClick={() => save.mutate()}>
+            {save.isPending && <Spinner />} Update
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
