@@ -14,7 +14,12 @@ import { useProfile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
 import type { ApplicationWithCampaign, Campaign, CreatorProfile } from "@/lib/db";
-import { updateApplicationStatus } from "@/lib/marketplace.functions";
+import { updateApplicationStatus, verifyPostMetrics } from "@/lib/marketplace.functions";
+import { callWithAuth } from "@/lib/server-call";
+
+type AdminApplication = ApplicationWithCampaign & {
+  creator_profiles: CreatorProfile | null;
+};
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
