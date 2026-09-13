@@ -142,6 +142,7 @@ function CampaignDetail() {
     niche: campaign.data.niche_requirement,
     city: campaign.data.target_city,
     budget: Number(campaign.data.total_budget),
+    payoutPerCreator: Number(campaign.data.payout_per_creator),
     rows: list.map((a) => ({
       handle: creatorLabel(a),
       city: campaign.data!.target_city,
