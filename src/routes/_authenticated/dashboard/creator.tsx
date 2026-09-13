@@ -78,6 +78,9 @@ function CreatorDashboard() {
           <TabsTrigger value="deliverables">
             <ListChecks className="mr-2 size-4" /> My deliverables
           </TabsTrigger>
+          <TabsTrigger value="mediakit">
+            <IdCard className="mr-2 size-4" /> Media kit
+          </TabsTrigger>
         </TabsList>
 
         <TabsContent value="explore" className="mt-6">
@@ -85,6 +88,9 @@ function CreatorDashboard() {
         </TabsContent>
         <TabsContent value="deliverables" className="mt-6">
           <DeliverablesTab creator={creator} />
+        </TabsContent>
+        <TabsContent value="mediakit" className="mt-6">
+          <MediaKitEditor creator={creator} />
         </TabsContent>
       </Tabs>
     </AppShell>
