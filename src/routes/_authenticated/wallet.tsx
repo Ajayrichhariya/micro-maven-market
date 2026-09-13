@@ -47,7 +47,7 @@ function WalletPage() {
   const [amount, setAmount] = useState("5000");
   const [busy, setBusy] = useState<"deposit" | "withdraw" | null>(null);
 
-  const wallet = useQuery({ queryKey: ["wallet"], queryFn: () => fetchWallet({ data: {} }) });
+  const wallet = useQuery({ queryKey: ["wallet"], queryFn: () => fetchWallet() });
 
   const run = async (kind: "deposit" | "withdraw") => {
     const value = Number(amount);

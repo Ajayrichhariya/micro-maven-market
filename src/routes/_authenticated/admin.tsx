@@ -14,7 +14,12 @@ import { useProfile } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { formatCompact, formatINR } from "@/lib/constants";
 import type { ApplicationWithCampaign, Campaign, CreatorProfile } from "@/lib/db";
-import { updateApplicationStatus } from "@/lib/marketplace.functions";
+import { updateApplicationStatus, verifyPostMetrics } from "@/lib/marketplace.functions";
+import { callWithAuth } from "@/lib/server-call";
+
+type AdminApplication = ApplicationWithCampaign & {
+  creator_profiles: CreatorProfile | null;
+};
 
 export const Route = createFileRoute("/_authenticated/admin")({
   head: () => ({
@@ -36,6 +41,7 @@ function AdminDashboard() {
   const { data: profile, isPending: profilePending } = useProfile();
   const queryClient = useQueryClient();
   const updateStatus = useServerFn(updateApplicationStatus);
+  const verifyPost = useServerFn(verifyPostMetrics);
 
   const creators = useQuery({
     queryKey: ["admin-creators"],
@@ -63,14 +69,39 @@ function AdminDashboard() {
   const applications = useQuery({
     queryKey: ["admin-applications"],
     enabled: profile?.role === "admin",
-    queryFn: async (): Promise<ApplicationWithCampaign[]> => {
+    queryFn: async (): Promise<AdminApplication[]> => {
       const { data, error } = await supabase
         .from("campaign_applications")
-        .select("*, campaigns(*)")
+        .select("*, campaigns(*), creator_profiles(*)")
         .order("applied_at", { ascending: false });
       if (error) throw error;
-      return (data ?? []) as ApplicationWithCampaign[];
+      return (data ?? []) as AdminApplication[];
     },
+  });
+
+  const decide = useMutation({
+    mutationFn: async ({
+      id,
+      status,
+    }: {
+      id: string;
+      status: "approved" | "rejected";
+    }) => callWithAuth(updateStatus, { application_id: id, status }),
+    onSuccess: async () => {
+      toast.success("Application updated");
+      await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
+  });
+
+  const verifyMetrics = useMutation({
+    mutationFn: async (id: string) =>
+      callWithAuth(verifyPost, { application_id: id, verified: true }),
+    onSuccess: async () => {
+      toast.success("Performance verified");
+      await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
+    },
+    onError: (error: Error) => toast.error(error.message),
   });
 
   const verify = useMutation({
@@ -90,7 +121,7 @@ function AdminDashboard() {
 
   const markPaid = useMutation({
     mutationFn: async (applicationId: string) =>
-      updateStatus({ data: { application_id: applicationId, status: "paid" as const } }),
+      callWithAuth(updateStatus, { application_id: applicationId, status: "paid" as const }),
     onSuccess: async () => {
       toast.success("Marked as paid");
       await queryClient.invalidateQueries({ queryKey: ["admin-applications"] });
@@ -117,6 +148,7 @@ function AdminDashboard() {
     0,
   );
   const pending = (applications.data ?? []).filter((a) => a.status === "submitted");
+  const incoming = (applications.data ?? []).filter((a) => a.status === "applied");
 
   return (
     <AppShell>
@@ -185,6 +217,60 @@ function AdminDashboard() {
       </section>
 
       <section className="mt-10">
+        <h2 className="text-lg font-semibold">Assignment queue</h2>
+        <p className="mt-1 text-sm text-muted-foreground">
+          You decide which creator gets each campaign. Brands never see or contact creators.
+        </p>
+        {incoming.length === 0 ? (
+          <EmptyState
+            icon={Users}
+            title="No new applications"
+            description="Creator applications waiting for your decision will appear here."
+          />
+        ) : (
+          <div className="mt-4 divide-y divide-border overflow-hidden rounded-xl border border-border bg-card">
+            {incoming.map((application) => (
+              <div
+                key={application.id}
+                className="flex flex-wrap items-center justify-between gap-4 p-4"
+              >
+                <div>
+                  <p className="font-medium">{application.campaigns?.title}</p>
+                  <div className="mt-1 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>@{application.creator_profiles?.instagram_handle ?? "creator"}</span>
+                    <span>
+                      {formatCompact(application.creator_profiles?.follower_count ?? 0)} followers
+                    </span>
+                    <span>{application.creator_profiles?.city}</span>
+                    <VerificationBadge
+                      verified={Boolean(application.creator_profiles?.is_verified)}
+                    />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    size="sm"
+                    disabled={decide.isPending}
+                    onClick={() => decide.mutate({ id: application.id, status: "approved" })}
+                  >
+                    Assign creator
+                  </Button>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={decide.isPending}
+                    onClick={() => decide.mutate({ id: application.id, status: "rejected" })}
+                  >
+                    Reject
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="mt-10">
         <h2 className="text-lg font-semibold">Payout queue</h2>
         {pending.length === 0 ? (
           <EmptyState
@@ -205,9 +291,23 @@ function AdminDashboard() {
                     {formatINR(application.campaigns?.payout_per_creator ?? 0)} ·{" "}
                     {application.submission_link ?? "No link"}
                   </p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {formatCompact(application.reported_views)} views ·{" "}
+                    {formatCompact(application.reported_likes)} likes ·{" "}
+                    {formatCompact(application.reported_comments)} comments ·{" "}
+                    {application.metrics_verified ? "verified" : "unverified"}
+                  </p>
                 </div>
                 <div className="flex items-center gap-3">
                   <StatusBadge status={application.status} kind="application" />
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={verifyMetrics.isPending || application.metrics_verified}
+                    onClick={() => verifyMetrics.mutate(application.id)}
+                  >
+                    Verify performance
+                  </Button>
                   <Button
                     size="sm"
                     disabled={markPaid.isPending}
