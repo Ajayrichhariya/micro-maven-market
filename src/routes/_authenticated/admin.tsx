@@ -41,6 +41,7 @@ function AdminDashboard() {
   const { data: profile, isPending: profilePending } = useProfile();
   const queryClient = useQueryClient();
   const updateStatus = useServerFn(updateApplicationStatus);
+  const verifyPost = useServerFn(verifyPostMetrics);
 
   const creators = useQuery({
     queryKey: ["admin-creators"],
