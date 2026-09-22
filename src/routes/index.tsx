@@ -45,13 +45,36 @@ const brandSteps = [
   },
   {
     icon: Users,
-    title: "Review real applicants",
-    body: "Every applicant arrives with handle, city, follower count and engagement rate on one card.",
+    title: "AdBridge picks the creators",
+    body: "Our team shortlists and assigns vetted creators for you — no DMs, no negotiation, no chasing.",
   },
   {
     icon: ShieldCheck,
-    title: "Pay only on verified proof",
-    body: "Money is released after the live reel URL and proof screenshot are checked by you.",
+    title: "Pay AdBridge, we pay creators",
+    body: "Your budget sits with us until every reel is live and verified. Then we release creator payouts.",
+  },
+];
+
+const promotionReasons = [
+  {
+    icon: IndianRupee,
+    title: "Cheaper than agency ads",
+    body: "Pay a fixed rupee amount per reel instead of bidding on impressions you cannot verify.",
+  },
+  {
+    icon: Users,
+    title: "Local, niche audiences",
+    body: "Reach buyers in your city and category through creators their followers actually trust.",
+  },
+  {
+    icon: BarChart3,
+    title: "Proof and numbers, always",
+    body: "Every reel comes back with a live link plus views, likes and comments in one ROI report.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Zero coordination work",
+    body: "One dashboard, one point of contact. AdBridge handles briefs, follow-ups and payouts.",
   },
 ];
 
