@@ -61,6 +61,30 @@ export const submitProofSchema = z.object({
   proof_screenshot_url: z.string().trim().max(1000).nullable().optional(),
 });
 
+/**
+ * Estimates reel performance from the creator's audience profile.
+ * Instagram does not expose public reel counters, so the platform auto-fills a
+ * realistic baseline on submission which the admin then verifies or corrects.
+ */
+export function estimateReelPerformance(profile: {
+  follower_count: number;
+  avg_views: number;
+  engagement_rate: number;
+}) {
+  const followers = Math.max(0, Number(profile.follower_count) || 0);
+  const baseViews = Number(profile.avg_views) || Math.round(followers * 0.32);
+  const views = Math.max(0, Math.round(baseViews));
+
+  const rate = Number(profile.engagement_rate) || 0;
+  // engagement_rate is stored as a percentage; fall back to a 4% baseline.
+  const pct = Math.min(Math.max(rate > 0 ? rate : 4, 0.5), 20) / 100;
+
+  const likes = Math.round(views * pct);
+  const comments = Math.max(likes > 0 ? 1 : 0, Math.round(likes * 0.06));
+
+  return { views, likes, comments };
+}
+
 /** POST /api/applications/submit-proof — validates the Instagram URL then records the deliverable. */
 export const submitProof = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
