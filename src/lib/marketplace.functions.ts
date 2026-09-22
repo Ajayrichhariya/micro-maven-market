@@ -70,18 +70,32 @@ export const submitProof = createServerFn({ method: "POST" })
 
     const { data: application, error: loadError } = await supabase
       .from("campaign_applications")
-      .select("id, status, creator_profiles!inner(user_id)")
+      .select(
+        "id, status, reported_views, creator_profiles!inner(user_id, follower_count, avg_views, engagement_rate)",
+      )
       .eq("id", data.application_id)
       .maybeSingle();
     if (loadError) throw new Error(loadError.message);
     if (!application) throw new Error("Application not found");
 
-    const owner = (application as unknown as { creator_profiles: { user_id: string } })
-      .creator_profiles;
+    const owner = (
+      application as unknown as {
+        creator_profiles: {
+          user_id: string;
+          follower_count: number;
+          avg_views: number;
+          engagement_rate: number;
+        };
+      }
+    ).creator_profiles;
     if (owner?.user_id !== userId) throw new Error("You cannot submit for this application");
     if (application.status === "rejected") throw new Error("This application was rejected");
     if (application.status === "applied") throw new Error("Wait for brand approval before submitting");
     if (application.status === "paid") throw new Error("This deliverable is already paid");
+
+    // Auto-estimate live performance from the creator's audience profile.
+    // Admin verifies (and can correct) these numbers before payout.
+    const estimate = estimateReelPerformance(owner);
 
     const { data: updated, error } = await supabase
       .from("campaign_applications")
@@ -90,6 +104,11 @@ export const submitProof = createServerFn({ method: "POST" })
         proof_screenshot_url: data.proof_screenshot_url ?? null,
         status: "submitted",
         submitted_at: new Date().toISOString(),
+        reported_views: estimate.views,
+        reported_likes: estimate.likes,
+        reported_comments: estimate.comments,
+        metrics_verified: false,
+        last_synced_at: new Date().toISOString(),
       })
       .eq("id", data.application_id)
       .select("*")
