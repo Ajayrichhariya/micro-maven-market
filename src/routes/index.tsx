@@ -45,13 +45,36 @@ const brandSteps = [
   },
   {
     icon: Users,
-    title: "Review real applicants",
-    body: "Every applicant arrives with handle, city, follower count and engagement rate on one card.",
+    title: "AdBridge picks the creators",
+    body: "Our team shortlists and assigns vetted creators for you — no DMs, no negotiation, no chasing.",
   },
   {
     icon: ShieldCheck,
-    title: "Pay only on verified proof",
-    body: "Money is released after the live reel URL and proof screenshot are checked by you.",
+    title: "Pay AdBridge, we pay creators",
+    body: "Your budget sits with us until every reel is live and verified. Then we release creator payouts.",
+  },
+];
+
+const promotionReasons = [
+  {
+    icon: IndianRupee,
+    title: "Cheaper than agency ads",
+    body: "Pay a fixed rupee amount per reel instead of bidding on impressions you cannot verify.",
+  },
+  {
+    icon: Users,
+    title: "Local, niche audiences",
+    body: "Reach buyers in your city and category through creators their followers actually trust.",
+  },
+  {
+    icon: BarChart3,
+    title: "Proof and numbers, always",
+    body: "Every reel comes back with a live link plus views, likes and comments in one ROI report.",
+  },
+  {
+    icon: ShieldCheck,
+    title: "Zero coordination work",
+    body: "One dashboard, one point of contact. AdBridge handles briefs, follow-ups and payouts.",
   },
 ];
 
@@ -209,31 +232,72 @@ function Landing() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
-        <h2 className="text-center text-2xl font-semibold">Why a middleman at all?</h2>
-        <div className="mt-10 grid gap-4 md:grid-cols-3">
-          {[
-            {
-              icon: IndianRupee,
-              title: "Escrow-style payouts",
-              body: "Budget is committed at campaign creation and released per creator after verification.",
-            },
-            {
-              icon: BarChart3,
-              title: "Reach you can forecast",
-              body: "Estimated reach is calculated from creators × average views before you spend a rupee.",
-            },
-            {
-              icon: CheckCircle2,
-              title: "Verified creator pool",
-              body: "Admins verify handles and engagement, so brands aren't buying inflated follower counts.",
-            },
-          ].map((c) => (
+        <h2 className="text-center text-2xl font-semibold">Why promote on AdBridge?</h2>
+        <p className="mx-auto mt-3 max-w-2xl text-center text-sm text-muted-foreground">
+          Small brands get real reach without hiring an agency, and creators get paid on time
+          without chasing anyone.
+        </p>
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {promotionReasons.map((c) => (
             <div key={c.title} className="rounded-xl border border-border bg-card p-6 shadow-panel">
               <c.icon className="size-5 text-primary" />
               <p className="mt-4 font-medium">{c.title}</p>
               <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      <section className="border-y border-border/60 bg-card/30">
+        <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6">
+          <div className="grid items-center gap-10 lg:grid-cols-[1fr_1.2fr]">
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-medium text-primary">
+                <ShieldCheck className="size-3.5" /> AdBridge sits in the middle
+              </span>
+              <h2 className="mt-5 text-2xl font-semibold">
+                Brands and creators never have to deal with each other
+              </h2>
+              <p className="mt-3 text-sm text-muted-foreground">
+                The AdBridge team is the single point of contact. Brands talk to us, creators talk
+                to us, and we run everything in between — so nobody gets ghosted and nobody gets
+                underpaid.
+              </p>
+            </div>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                {
+                  icon: Users,
+                  title: "We assign the creators",
+                  body: "Our team matches every campaign to the right verified creators and approves them.",
+                },
+                {
+                  icon: IndianRupee,
+                  title: "We hold the money",
+                  body: "Brand budget stays in escrow with AdBridge and is released to creators only after checks.",
+                },
+                {
+                  icon: CheckCircle2,
+                  title: "We verify every reel",
+                  body: "Live link, proof screenshot and performance numbers are confirmed by us before payout.",
+                },
+                {
+                  icon: BadgeCheck,
+                  title: "We vet the creator pool",
+                  body: "Handles and engagement are verified, so brands never buy inflated follower counts.",
+                },
+              ].map((c) => (
+                <div
+                  key={c.title}
+                  className="rounded-xl border border-border bg-background p-5 shadow-panel"
+                >
+                  <c.icon className="size-5 text-primary" />
+                  <p className="mt-3 font-medium">{c.title}</p>
+                  <p className="mt-1 text-sm text-muted-foreground">{c.body}</p>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
       </section>
 

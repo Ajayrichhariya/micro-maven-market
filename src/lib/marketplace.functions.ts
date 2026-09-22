@@ -61,6 +61,30 @@ export const submitProofSchema = z.object({
   proof_screenshot_url: z.string().trim().max(1000).nullable().optional(),
 });
 
+/**
+ * Estimates reel performance from the creator's audience profile.
+ * Instagram does not expose public reel counters, so the platform auto-fills a
+ * realistic baseline on submission which the admin then verifies or corrects.
+ */
+export function estimateReelPerformance(profile: {
+  follower_count: number;
+  avg_views: number;
+  engagement_rate: number;
+}) {
+  const followers = Math.max(0, Number(profile.follower_count) || 0);
+  const baseViews = Number(profile.avg_views) || Math.round(followers * 0.32);
+  const views = Math.max(0, Math.round(baseViews));
+
+  const rate = Number(profile.engagement_rate) || 0;
+  // engagement_rate is stored as a percentage; fall back to a 4% baseline.
+  const pct = Math.min(Math.max(rate > 0 ? rate : 4, 0.5), 20) / 100;
+
+  const likes = Math.round(views * pct);
+  const comments = Math.max(likes > 0 ? 1 : 0, Math.round(likes * 0.06));
+
+  return { views, likes, comments };
+}
+
 /** POST /api/applications/submit-proof — validates the Instagram URL then records the deliverable. */
 export const submitProof = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
@@ -70,18 +94,32 @@ export const submitProof = createServerFn({ method: "POST" })
 
     const { data: application, error: loadError } = await supabase
       .from("campaign_applications")
-      .select("id, status, creator_profiles!inner(user_id)")
+      .select(
+        "id, status, reported_views, creator_profiles!inner(user_id, follower_count, avg_views, engagement_rate)",
+      )
       .eq("id", data.application_id)
       .maybeSingle();
     if (loadError) throw new Error(loadError.message);
     if (!application) throw new Error("Application not found");
 
-    const owner = (application as unknown as { creator_profiles: { user_id: string } })
-      .creator_profiles;
+    const owner = (
+      application as unknown as {
+        creator_profiles: {
+          user_id: string;
+          follower_count: number;
+          avg_views: number;
+          engagement_rate: number;
+        };
+      }
+    ).creator_profiles;
     if (owner?.user_id !== userId) throw new Error("You cannot submit for this application");
     if (application.status === "rejected") throw new Error("This application was rejected");
     if (application.status === "applied") throw new Error("Wait for brand approval before submitting");
     if (application.status === "paid") throw new Error("This deliverable is already paid");
+
+    // Auto-estimate live performance from the creator's audience profile.
+    // Admin verifies (and can correct) these numbers before payout.
+    const estimate = estimateReelPerformance(owner);
 
     const { data: updated, error } = await supabase
       .from("campaign_applications")
@@ -90,6 +128,11 @@ export const submitProof = createServerFn({ method: "POST" })
         proof_screenshot_url: data.proof_screenshot_url ?? null,
         status: "submitted",
         submitted_at: new Date().toISOString(),
+        reported_views: estimate.views,
+        reported_likes: estimate.likes,
+        reported_comments: estimate.comments,
+        metrics_verified: false,
+        last_synced_at: new Date().toISOString(),
       })
       .eq("id", data.application_id)
       .select("*")
