@@ -253,8 +253,103 @@ export type Database = {
           },
         ]
       }
+      direct_conversations: {
+        Row: {
+          created_at: string
+          created_by: string
+          id: string
+          participant_one: string
+          participant_two: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          id?: string
+          participant_one: string
+          participant_two: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          id?: string
+          participant_one?: string
+          participant_two?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_conversations_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_conversations_participant_one_fkey"
+            columns: ["participant_one"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_conversations_participant_two_fkey"
+            columns: ["participant_two"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      direct_messages: {
+        Row: {
+          content: string
+          conversation_id: string
+          created_at: string
+          id: string
+          is_read: boolean
+          media_path: string | null
+          media_type: string | null
+          sender_id: string
+        }
+        Insert: {
+          content?: string
+          conversation_id: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          media_path?: string | null
+          media_type?: string | null
+          sender_id: string
+        }
+        Update: {
+          content?: string
+          conversation_id?: string
+          created_at?: string
+          id?: string
+          is_read?: boolean
+          media_path?: string | null
+          media_type?: string | null
+          sender_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "direct_messages_conversation_id_fkey"
+            columns: ["conversation_id"]
+            isOneToOne: false
+            referencedRelation: "direct_conversations"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "direct_messages_sender_id_fkey"
+            columns: ["sender_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
+          account_status: string
           avatar_url: string | null
           created_at: string
           email: string
@@ -262,8 +357,10 @@ export type Database = {
           id: string
           phone: string | null
           role: Database["public"]["Enums"]["app_role"]
+          updated_at: string
         }
         Insert: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -271,8 +368,10 @@ export type Database = {
           id: string
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
         }
         Update: {
+          account_status?: string
           avatar_url?: string | null
           created_at?: string
           email?: string
@@ -280,6 +379,7 @@ export type Database = {
           id?: string
           phone?: string | null
           role?: Database["public"]["Enums"]["app_role"]
+          updated_at?: string
         }
         Relationships: []
       }
@@ -361,10 +461,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_set_account_status: {
+        Args: { _status: string; _user_id: string }
+        Returns: undefined
+      }
       brand_can_view_creator: {
         Args: { _creator_id: string }
         Returns: boolean
       }
+      current_account_approved: { Args: never; Returns: boolean }
       current_role_is: {
         Args: { _role: Database["public"]["Enums"]["app_role"] }
         Returns: boolean
@@ -393,6 +498,15 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      list_approved_chat_contacts: {
+        Args: never
+        Returns: {
+          avatar_url: string
+          full_name: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+        }[]
       }
       owns_campaign: { Args: { _campaign_id: string }; Returns: boolean }
       owns_creator: { Args: { _creator_id: string }; Returns: boolean }
