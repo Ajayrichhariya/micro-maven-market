@@ -1,0 +1,4 @@
+- [ ] Add safe account-approval status and secure signup/admin approval rules.
+- [ ] Build approved-user private messaging with real-time updates, unread/search, and private media attachments.
+- [ ] Add approval page and admin approval controls; move landing-page sign-in to the footer.
+- [ ] Verify preview, migration, security rules, and package update.
