@@ -8,6 +8,13 @@
       "when": 1793901719901,
       "tag": "0000_private_chat_approval_and_dm",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1794277189614,
+      "tag": "0001_secure_approved_chat_and_read_receipts",
+      "breakpoints": true
     }
   ]
 }
